@@ -1,73 +1,64 @@
-const request = require('supertest');
+const request = require("supertest");
+const server = require("../api/server");
+const db = require("../database/dbConfig");
+const bcrypt = require("bcryptjs");
 
-const Users = require('../database/dbConfig.js');
-
-const bcrypt = require('bcryptjs');
-
-
-describe('should register a new user', function(){
-    beforeEach(async () => {
-        await Users('users').truncate();
-    });
-
-    it("responds with a 201", function(done){
-        request(server)
-        .post('/register')
-        .send({ username: "Amberly", password:"123pass" })
-        .set('Accept', 'application/json')
-        .expect("Content-type", /json/)
-        .expect(201)
-        .end(function(err, res){
-            if (err) return done(err);
-            done();
-    });
+beforeEach(async () => {
+  await db("users").truncate();
 });
 
-it("responds with 500 with incorrect body", function(done) {
-    request(server)
-      .post("/register")
-      .send({ fdssd: "jofdfdfdfhn", password: "butteeeee" })
-      .set("Accept", "application/json")
-      .expect("Content-Type", /json/)
-      .expect(500)
-      .end(function(err, res) {
-        if (err) return done(err);
-        done();
-      });
+describe("Auth Router", () => {
+  describe("POST /api/auth/register", () => {
+    it("should return a 201 status when giving username and password", async () => {
+      const res = await request(server)
+        .post("/api/auth/register")
+        .send({ username: "Amberly", password: "123pass" })
+        .set("Accept", "application/json");
+
+      return expect(res.status).toBe(201);
+    });
+
+    it("should return a token upon successful register", async () => {
+      const res = await request(server)
+        .post("/api/auth/register")
+        .send({ username: "Amberly", password: "123pass" })
+        .set("Accept", "application/json");
+
+      expect(res.body.token).toBeTruthy();
+    });
   });
-});
 
-describe("POST /login", function() {
-  it("202 with correct login", function(done) {
-    const salt = bcrypt.genSaltSync(10);
-    const hash = bcrypt.hashSync("Amberly", salt);
+  describe("POST /api/auth/login", () => {
+    it("should return a 200 status when giving username and password", async () => {
+      const [added] = await db("users").insert({
+        username: "Amberly",
+        password: bcrypt.hashSync("123pass", 12)
+      });
 
-    return Users("users")
-      .insert({ username: "Amberly", password: hash })
-      .then(() => {
-        request(server)
-          .post("/login")
+      if (added) {
+        console.log(added);
+        const res = await request(server)
+          .post("/api/auth/login")
           .send({ username: "Amberly", password: "123pass" })
-          .set("Accept", "application/json")
-          .expect("Content-Type", /json/)
-          .expect(202)
-          .end(function(err, res) {
-            if (err) return done(err);
-            done();
-          });
-      });
-  });
+          .set("Accept", "application/json");
 
-  it("responds with 500 with incorrect body", function(done) {
-    request(server)
-      .post("/register")
-      .send({ fdssd: "jofdfdfdfhn", password: "butteeeee" })
-      .set("Accept", "application/json")
-      .expect("Content-Type", /json/)
-      .expect(500)
-      .end(function(err, res) {
-        if (err) return done(err);
-        done();
+        return expect(res.status).toBe(200);
+      }
+    });
+
+    it("should return a token upon successful login", async () => {
+      const [added] = await db("users").insert({
+        username: "Amberly",
+        password: bcrypt.hashSync("123pass", 12)
       });
+
+      if (added) {
+        const res = await request(server)
+          .post("/api/auth/login")
+          .send({ username: "Amberly", password: "123pass" });
+
+        expect(res.body.token).toBeTruthy();
+      }
+    });
   });
 });

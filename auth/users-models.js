@@ -1,43 +1,17 @@
-const db = require("../database/dbConfig.js");
+const db = require("../database/dbConfig");
 
-//database helper functions
-const insert = user => {
-  return db("users").insert(user);
-};
+module.exports = { add, getBy };
 
-const getBy = prop => {
+async function add(userData) {
+  const [id] = await db("users").insert(userData);
+
   return db("users")
-    .where(prop)
+    .where({ id })
     .first();
-};
+}
 
-const update = (id, changes) => {
+async function getBy(filter) {
   return db("users")
-    .where(id)
-    .update(changes)
-    .then(res => {
-      if (res === 1) {
-        getBy(id);
-      } else {
-        return undefined;
-      }
-    });
-};
-
-const deleteUser = id => {
-  return getBy(id).then(res => {
-    console.log(res);
-    if (res) {
-      return db("users")
-        .where(id)
-        .del();
-    }
-  });
-};
-
-module.exports = {
-  insert,
-  getBy,
-  update,
-  deleteUser
-};
+    .where(filter)
+    .first();
+}

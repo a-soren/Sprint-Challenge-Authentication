@@ -55,7 +55,7 @@ Demonstrate your understanding of this week's concepts by answering the followin
 
 - [ ] What are the three parts of the JSON Web Token?
 
-*** header, payload, signature ***
+*** payload, secret, options ***
 
 
 

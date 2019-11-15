@@ -1,56 +1,57 @@
-const router = require('express').Router();
-const Users = require('./users-models.js');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const secret = require('../config/secrets.js');
+const router = require("express").Router();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const db = require("./users-models.js");
 
-router.post('/register', (req, res) => {
-  const creds = req.body;
-  console.log(creds);
-  const salt = bcrypt.genSaltSync(10);
-  const hash = bcrypt.hashSync(creds.password, salt);
+router.post("/register", async (req, res) => {
+  let { username, password } = req.body;
+  const hash = bcrypt.hashSync(password, 12);
 
-  Users.insert({...creds, password:hash })
-  .then(user => {
-    console.log(user);
-    res.status(201).json({
-      message: 'User was created'
-    });
-  })
-  .catch(error => {
-    console.log(error);
-    res.status(500).json({
-      message: 'Error creating user',
-      Err: error
-    });
-  });
+  password = hash;
+
+  try {
+    const user = await db.add({ username, password });
+    const token = getJwtToken(user);
+
+    res.status(201).json({ ...user, token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to register the user" });
+  }
 });
 
-router.post('/login', (req, res) => {
-  const creds = req.body;
+router.post("/login", async (req, res) => {
+  let { username, password } = req.body;
+  try {
+    const user = await db.getBy({ username });
 
-  Users.getBy({username: creds.username})
-  .then(user => {
-    console.log(user);
-    if(user && bcrypt.compareSync(creds.password, user.password)){
-      const token = generateToken(user);
-      console.log(token);
-      res.status(202).json({
-        message: 'Welcome!',
+    if (user && bcrypt.compareSync(password, user.password)) {
+      const token = getJwtToken(user);
+      res.status(200).json({
+        message: `Welcome ${user.username}`,
         token
       });
     } else {
-      res.status(401).json({
-        message: 'Please enter the correct username or password'
-      });
+      res.status(401).json({ error: "Invalid credentials" });
     }
-  })
-  .catch(error => {
-    res.status(500).json({
-      message: 'cannot connect to the database',
-      error: error
-    });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to login" });
+  }
 });
+
+function getJwtToken(user) {
+  const payload = {
+    username: user.username
+  };
+
+  const secret = process.env.JWT_SECRET || "keep it secret";
+
+  const options = {
+    expiresIn: "1d"
+  };
+
+  return jwt.sign(payload, secret, options);
+}
 
 module.exports = router;
