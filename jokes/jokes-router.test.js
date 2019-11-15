@@ -6,7 +6,7 @@ describe("Jokes Router", () => {
   describe("GET /api/jokes/", () => {
     it("should return a status 200", async () => {
       const token = jwt.sign(
-        { username: "jambis" },
+        { username: "Amberly" },
         "a3289rh3298fdn2983hj2nf90-9-n@!)@0",
         {
           expiresIn: "1d"
@@ -22,7 +22,7 @@ describe("Jokes Router", () => {
 
     it("should return an array of jokes", async () => {
       const token = jwt.sign(
-        { username: "jambis" },
+        { username: "Amberly" },
         "a3289rh3298fdn2983hj2nf90-9-n@!)@0",
         {
           expiresIn: "1d"
